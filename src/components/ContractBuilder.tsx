@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, AlertCircle, Download, FilePdf, FileWord } from 'lucide-react';
+import { ChevronLeft, AlertCircle, Download, File, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from "@/contexts/AppContext";
 import ContractSection from './ContractSection';
@@ -25,7 +24,6 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
   const { toast } = useToast();
   const { state } = useAppContext();
   
-  // This would come from a template data service in a real app
   const [sections, setSections] = useState<ContractSectionData[]>([
     {
       id: 'parties',
@@ -84,10 +82,6 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
       )
     );
     
-    // In a real implementation, we would analyze the text with Gemini API here
-    // and update the risk level accordingly
-    
-    // For now, we'll simulate a risk analysis after a delay
     if (newContent.toLowerCase().includes('unlimited liability')) {
       setTimeout(() => {
         setSections(prevSections => 
@@ -106,13 +100,11 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
   };
   
   const handleExport = (format: 'pdf' | 'docx') => {
-    // In a real implementation, we would generate a document here
     toast({
       title: 'Export Initiated',
       description: `Your contract will be exported as ${format.toUpperCase()}.`,
     });
     
-    // Simulate download delay
     setTimeout(() => {
       toast({
         title: 'Export Complete',
@@ -135,14 +127,14 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
             variant="outline" 
             onClick={() => handleExport('docx')}
           >
-            <FileWord className="h-4 w-4 mr-1" />
+            <File className="h-4 w-4 mr-1" />
             Export DOCX
           </Button>
           <Button 
             size="sm"
             onClick={() => handleExport('pdf')}
           >
-            <FilePdf className="h-4 w-4 mr-1" />
+            <FileText className="h-4 w-4 mr-1" />
             Export PDF
           </Button>
         </div>
