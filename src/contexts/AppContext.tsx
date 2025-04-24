@@ -1,10 +1,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
-
-type Language = 'uz-latin' | 'uz-cyrillic' | 'ru' | 'en';
-
-type RiskLevel = 'high' | 'medium' | 'low';
+import { Language, RiskLevel, ContractHistoryItem } from '@/types/contract';
 
 type Risk = {
   id: string;
@@ -41,6 +38,7 @@ type AppState = {
   isAnalyzing: boolean;
   currentAnalysis: AnalysisResult | null;
   analysisHistory: AnalysisResult[];
+  contractHistory: ContractHistoryItem[];
 };
 
 type AppAction =
@@ -49,7 +47,10 @@ type AppAction =
   | { type: 'START_ANALYSIS' }
   | { type: 'COMPLETE_ANALYSIS'; payload: AnalysisResult }
   | { type: 'RESET_ANALYSIS' }
-  | { type: 'LOAD_HISTORY' };
+  | { type: 'LOAD_HISTORY' }
+  | { type: 'LOAD_CONTRACT_HISTORY'; payload: ContractHistoryItem[] }
+  | { type: 'ADD_CONTRACT_HISTORY'; payload: ContractHistoryItem }
+  | { type: 'DELETE_CONTRACT_HISTORY'; payload: string };
 
 const initialState: AppState = {
   language: 'uz-latin',
@@ -57,7 +58,8 @@ const initialState: AppState = {
   currentFile: null,
   isAnalyzing: false,
   currentAnalysis: null,
-  analysisHistory: []
+  analysisHistory: [],
+  contractHistory: []
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -121,6 +123,23 @@ function appReducer(state: AppState, action: AppAction): AppState {
         });
       }
       return state;
+    case 'LOAD_CONTRACT_HISTORY':
+      return {
+        ...state,
+        contractHistory: action.payload
+      };
+    case 'ADD_CONTRACT_HISTORY':
+      const updatedContractHistory = [action.payload, ...state.contractHistory];
+      return {
+        ...state,
+        contractHistory: updatedContractHistory
+      };
+    case 'DELETE_CONTRACT_HISTORY':
+      const filteredHistory = state.contractHistory.filter(item => item.id !== action.payload);
+      return {
+        ...state,
+        contractHistory: filteredHistory
+      };
     default:
       return state;
   }
@@ -147,6 +166,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     // Load history
     dispatch({ type: 'LOAD_HISTORY' });
+    
+    // Load contract history
+    try {
+      const savedContractHistory = localStorage.getItem('huquq-contract-history');
+      if (savedContractHistory) {
+        const parsedHistory = JSON.parse(savedContractHistory) as ContractHistoryItem[];
+        // Convert string dates to Date objects
+        parsedHistory.forEach(item => {
+          item.createdAt = new Date(item.createdAt);
+          item.modifiedAt = new Date(item.modifiedAt);
+        });
+        dispatch({ type: 'LOAD_CONTRACT_HISTORY', payload: parsedHistory });
+      }
+    } catch (error) {
+      console.error('Failed to load contract history:', error);
+    }
   }, []);
 
   const resetAnalysis = () => {

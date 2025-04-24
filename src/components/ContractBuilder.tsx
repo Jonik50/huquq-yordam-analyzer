@@ -1,80 +1,39 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, AlertCircle, Download, File, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from "@/contexts/AppContext";
 import ContractSection from './ContractSection';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { ContractSectionData, ContractHistoryItem } from '@/types/contract';
+import { getTemplateById } from '@/data/templateData';
+import AutofillManager from './AutofillManager';
+import LanguageScriptToggle from './LanguageScriptToggle';
+import ContractHistory from './ContractHistory';
 
 interface ContractBuilderProps {
   templateId: string;
   onBack: () => void;
 }
 
-interface ContractSectionData {
-  id: string;
-  title: string;
-  content: string;
-  required: boolean;
-  riskLevel: 'high' | 'medium' | 'low' | null;
-  tooltip?: string;
-}
-
 const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack }) => {
   const { toast } = useToast();
   const { state } = useAppContext();
+  const [sections, setSections] = useState<ContractSectionData[]>([]);
+  const [contractName, setContractName] = useState<string>('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
-  const [sections, setSections] = useState<ContractSectionData[]>([
-    {
-      id: 'parties',
-      title: 'Parties to the Agreement',
-      content: 'This agreement is made between [Party A] and [Party B].',
-      required: true,
-      riskLevel: null,
-      tooltip: 'Include full legal names and addresses of all parties.'
-    },
-    {
-      id: 'subject',
-      title: 'Subject of Agreement',
-      content: 'The subject of this agreement is [describe services or products].',
-      required: true,
-      riskLevel: null,
-      tooltip: 'Clearly define what services or products are covered by this agreement.'
-    },
-    {
-      id: 'term',
-      title: 'Term & Termination',
-      content: 'This agreement is valid from [start date] to [end date]. Either party may terminate with [notice period] written notice.',
-      required: true,
-      riskLevel: 'medium',
-      tooltip: 'Specify the duration of the agreement and the conditions under which either party can terminate it.'
-    },
-    {
-      id: 'payment',
-      title: 'Payment Terms',
-      content: 'Payment of [amount] will be made within [timeframe] days of invoice receipt.',
-      required: true,
-      riskLevel: 'low',
-      tooltip: 'Include the amount, currency, payment method, and deadline.'
-    },
-    {
-      id: 'liability',
-      title: 'Liability',
-      content: 'Neither party shall be liable for any indirect or consequential damages arising from this agreement.',
-      required: false,
-      riskLevel: 'high',
-      tooltip: 'This clause limits what damages can be claimed if something goes wrong.'
-    },
-    {
-      id: 'force-majeure',
-      title: 'Force Majeure',
-      content: 'Neither party shall be liable for failure to perform due to events beyond reasonable control.',
-      required: false,
-      riskLevel: null,
-      tooltip: 'This excuses a party from performing when events like natural disasters occur.'
+  // Load template sections based on language
+  useEffect(() => {
+    const template = getTemplateById(templateId);
+    if (template) {
+      setContractName(template.title[state.language]);
+      setSections(template.sections[state.language] || template.sections['en']);
     }
-  ]);
-  
+  }, [templateId, state.language]);
+
   const updateSectionContent = (sectionId: string, newContent: string) => {
     setSections(prevSections => 
       prevSections.map(section => 
@@ -99,6 +58,21 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
     }
   };
   
+  const handleDragEnd = (result: DropResult) => {
+    const { destination, source } = result;
+    
+    // Drop outside the list or no movement
+    if (!destination || (destination.index === source.index)) {
+      return;
+    }
+    
+    const newSections = Array.from(sections);
+    const [removed] = newSections.splice(source.index, 1);
+    newSections.splice(destination.index, 0, removed);
+    
+    setSections(newSections);
+  };
+  
   const handleExport = (format: 'pdf' | 'docx') => {
     toast({
       title: 'Export Initiated',
@@ -113,15 +87,127 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
     }, 1500);
   };
   
+  const handleAutofill = (sectionId: string, text: string) => {
+    updateSectionContent(sectionId, text);
+  };
+  
+  const handleAnalyze = () => {
+    setIsAnalyzing(true);
+    toast({
+      title: 'Analyzing Contract',
+      description: 'Our AI is analyzing your contract for potential risks...'
+    });
+    
+    setTimeout(() => {
+      // Simulate risk analysis
+      const updatedSections = sections.map(section => {
+        // Assign risk levels based on certain content patterns
+        if (section.content.toLowerCase().includes('unlimited') && 
+            section.content.toLowerCase().includes('liability')) {
+          return { ...section, riskLevel: 'high' };
+        }
+        if (section.content.toLowerCase().includes('terminate') && 
+            section.content.toLowerCase().includes('immediate')) {
+          return { ...section, riskLevel: 'high' };
+        }
+        if (section.content.toLowerCase().includes('notice period') || 
+            section.content.toLowerCase().includes('days notice')) {
+          return { ...section, riskLevel: 'medium' };
+        }
+        return section;
+      });
+      
+      setSections(updatedSections);
+      setIsAnalyzing(false);
+      
+      toast({
+        title: 'Analysis Complete',
+        description: 'Contract analysis has been completed. Risk levels updated.',
+      });
+    }, 2500);
+  };
+  
+  const handleSaveDraft = () => {
+    // Count risks
+    const risks = {
+      high: sections.filter(s => s.riskLevel === 'high').length,
+      medium: sections.filter(s => s.riskLevel === 'medium').length,
+      low: sections.filter(s => s.riskLevel === 'low').length
+    };
+    
+    // Create history item
+    const historyItem: ContractHistoryItem = {
+      id: Date.now().toString(),
+      templateId: templateId,
+      templateName: contractName,
+      createdAt: new Date(),
+      modifiedAt: new Date(),
+      language: state.language,
+      sections: sections,
+      risks: risks
+    };
+    
+    // Save to localStorage
+    try {
+      const existingHistory = localStorage.getItem('huquq-contract-history');
+      let history: ContractHistoryItem[] = [];
+      
+      if (existingHistory) {
+        history = JSON.parse(existingHistory);
+      }
+      
+      history.unshift(historyItem);
+      localStorage.setItem('huquq-contract-history', JSON.stringify(history));
+      
+      toast({
+        title: 'Draft Saved',
+        description: 'Your contract draft has been saved successfully.'
+      });
+    } catch (error) {
+      toast({
+        title: 'Save Failed',
+        description: 'Failed to save contract draft.',
+        variant: 'destructive'
+      });
+    }
+  };
+  
+  const handleContractFromHistory = (contract: ContractHistoryItem) => {
+    if (contract.templateId === templateId) {
+      setSections(contract.sections);
+      toast({
+        title: 'Contract Loaded',
+        description: 'Contract has been loaded from history.'
+      });
+    } else {
+      toast({
+        title: 'Template Mismatch',
+        description: 'Selected contract is based on a different template.',
+        variant: 'destructive'
+      });
+    }
+  };
+  
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Button variant="outline" size="sm" onClick={onBack}>
           <ChevronLeft className="h-4 w-4 mr-1" />
           Back to Templates
         </Button>
-        <h2 className="text-xl font-semibold flex-grow">Contract Editor</h2>
-        <div className="flex gap-2">
+        <h2 className="text-xl font-semibold flex-grow">{contractName}</h2>
+        <div className="flex gap-2 flex-wrap">
+          <LanguageScriptToggle />
+          <ContractHistory onSelectContract={handleContractFromHistory} />
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={handleAnalyze}
+            disabled={isAnalyzing}
+          >
+            <AlertCircle className="h-4 w-4 mr-1" />
+            {isAnalyzing ? 'Analyzing...' : 'Analyze Risks'}
+          </Button>
           <Button 
             size="sm" 
             variant="outline" 
@@ -140,19 +226,48 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
         </div>
       </div>
       
-      <div className="space-y-4">
-        {sections.map(section => (
-          <ContractSection
-            key={section.id}
-            section={section}
-            onChange={(content) => updateSectionContent(section.id, content)}
-          />
-        ))}
-      </div>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="contract-sections">
+          {(provided) => (
+            <div 
+              {...provided.droppableProps}
+              ref={provided.innerRef} 
+              className="space-y-4"
+            >
+              {sections.map((section, index) => (
+                <Draggable 
+                  key={section.id} 
+                  draggableId={section.id} 
+                  index={index}
+                >
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                    >
+                      <ContractSection
+                        section={section}
+                        onChange={(content) => updateSectionContent(section.id, content)}
+                        autofill={
+                          <AutofillManager 
+                            onSelect={(text) => handleAutofill(section.id, text)} 
+                          />
+                        }
+                      />
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
       
-      <div className="flex justify-end gap-4">
-        <Button variant="outline">Save Draft</Button>
-        <Button>Finalize Contract</Button>
+      <div className="flex justify-end gap-4 flex-wrap">
+        <Button variant="outline" onClick={handleSaveDraft}>Save Draft</Button>
+        <Button onClick={handleAnalyze}>Analyze & Finalize Contract</Button>
       </div>
     </div>
   );

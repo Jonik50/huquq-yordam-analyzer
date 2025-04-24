@@ -3,8 +3,9 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { CircleAlert, CircleCheck, CircleX, HelpCircle } from 'lucide-react';
+import { CircleAlert, CircleCheck, CircleX, HelpCircle, GripVertical } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { RiskLevel } from '@/types/contract';
 
 interface ContractSectionProps {
   section: {
@@ -12,13 +13,18 @@ interface ContractSectionProps {
     title: string;
     content: string;
     required: boolean;
-    riskLevel: 'high' | 'medium' | 'low' | null;
+    riskLevel: RiskLevel;
     tooltip?: string;
   };
   onChange: (content: string) => void;
+  autofill?: React.ReactNode;
 }
 
-const ContractSection: React.FC<ContractSectionProps> = ({ section, onChange }) => {
+const ContractSection: React.FC<ContractSectionProps> = ({ 
+  section, 
+  onChange,
+  autofill 
+}) => {
   const [isOpen, setIsOpen] = useState(true);
   
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -55,12 +61,13 @@ const ContractSection: React.FC<ContractSectionProps> = ({ section, onChange }) 
     <Collapsible
       open={isOpen}
       onOpenChange={setIsOpen}
-      className="border rounded-md"
+      className="border rounded-md group"
     >
       <CollapsibleTrigger className="w-full">
         <Card className="border-0 shadow-none">
           <CardHeader className="py-2 px-4 flex flex-row items-center justify-between cursor-pointer">
             <div className="flex items-center gap-2">
+              <GripVertical className="h-4 w-4 text-muted-foreground opacity-50 group-hover:opacity-100" />
               <CardTitle className="text-sm font-medium">
                 {section.title}
                 {section.required && <span className="text-huquq-danger ml-1">*</span>}
@@ -90,13 +97,28 @@ const ContractSection: React.FC<ContractSectionProps> = ({ section, onChange }) 
       </CollapsibleTrigger>
       <CollapsibleContent>
         <CardContent className="pt-0 px-4 pb-4">
-          <Textarea
-            value={section.content}
-            onChange={handleContentChange}
-            rows={4}
-            className="resize-y"
-            placeholder="Enter section content..."
-          />
+          <div className="space-y-3">
+            <div className="flex justify-end">
+              {autofill && autofill}
+            </div>
+            <Textarea
+              value={section.content}
+              onChange={handleContentChange}
+              rows={4}
+              className="resize-y"
+              placeholder="Enter section content..."
+            />
+            {section.riskLevel === 'high' && (
+              <div className="p-2 bg-huquq-danger/10 border border-huquq-danger/20 rounded text-sm">
+                <span className="font-medium text-huquq-danger">Caution:</span> This section contains high-risk language that may expose you to significant legal liability. Consider revising this clause.
+              </div>
+            )}
+            {section.riskLevel === 'medium' && (
+              <div className="p-2 bg-huquq-warning/10 border border-huquq-warning/20 rounded text-sm">
+                <span className="font-medium text-huquq-warning">Note:</span> This section contains language that may need further review. Consider clarifying the terms to reduce potential risks.
+              </div>
+            )}
+          </div>
         </CardContent>
       </CollapsibleContent>
     </Collapsible>
