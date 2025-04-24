@@ -1,13 +1,39 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { AppProvider, useAppContext } from "@/contexts/AppContext";
+import LanguageSelector from "@/components/LanguageSelector";
+import DocumentUpload from "@/components/DocumentUpload";
+import AnalysisProgress from "@/components/AnalysisProgress";
+import AnalysisResults from "@/components/AnalysisResults";
+
+const Main = () => {
+  const { state } = useAppContext();
+  
+  // Show language selector if language is not selected
+  if (!state.languageSelected) {
+    return <LanguageSelector />;
+  }
+  
+  // Show analysis results if available
+  if (state.currentAnalysis) {
+    return <AnalysisResults />;
+  }
+  
+  // Show analysis progress if analyzing
+  if (state.isAnalyzing) {
+    return <AnalysisProgress />;
+  }
+  
+  // Show document upload by default
+  return <DocumentUpload />;
+};
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <AppProvider>
+      <div className="min-h-screen bg-background">
+        <Main />
       </div>
-    </div>
+    </AppProvider>
   );
 };
 
