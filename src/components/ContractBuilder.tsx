@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAppContext } from "@/contexts/AppContext";
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
@@ -8,6 +7,7 @@ import ContractToolbar from './ContractToolbar';
 import { useToast } from '@/hooks/use-toast';
 import { useContractSections } from '@/hooks/useContractSections';
 import { analyzeContractSections } from '@/utils/contractAnalysis';
+import { Button } from '@/components/ui/button';
 
 interface ContractBuilderProps {
   templateId: string;
