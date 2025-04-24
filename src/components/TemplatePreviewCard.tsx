@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContractTemplate, Language } from '@/types/contract';
+import * as LucideIcons from 'lucide-react';
 
 interface TemplatePreviewCardProps {
   template: ContractTemplate;
@@ -15,7 +16,10 @@ const TemplatePreviewCard: React.FC<TemplatePreviewCardProps> = ({
   currentLanguage,
   onSelect,
 }) => {
-  const IconComponent = template.icon ? template.icon : 'FileText';
+  // Dynamically get the icon component, fallback to FileText if not found
+  const IconComponent = template.icon && LucideIcons[template.icon as keyof typeof LucideIcons] 
+    ? LucideIcons[template.icon as keyof typeof LucideIcons] 
+    : LucideIcons.FileText;
 
   return (
     <Card 
