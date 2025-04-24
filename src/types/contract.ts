@@ -1,4 +1,3 @@
-
 export type Language = 'uz-latin' | 'uz-cyrillic' | 'ru' | 'en';
 
 export type RiskLevel = 'high' | 'medium' | 'low' | null;
@@ -16,7 +15,10 @@ export type TemplateCategory =
   | 'business' 
   | 'real-estate' 
   | 'employment' 
-  | 'personal';
+  | 'personal'
+  | 'partnership'
+  | 'nda'
+  | 'custom';
 
 export type ContractTemplate = {
   id: string;
