@@ -1,17 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from "@/components/ui/card";
-import { ChevronLeft, AlertCircle, Download, File, FileText } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState } from 'react';
 import { useAppContext } from "@/contexts/AppContext";
-import ContractSection from './ContractSection';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
-import { ContractSectionData, ContractHistoryItem, RiskLevel } from '@/types/contract';
-import { getTemplateById } from '@/data/templateData';
-import AutofillManager from './AutofillManager';
-import LanguageScriptToggle from './LanguageScriptToggle';
-import ContractHistory from './ContractHistory';
+import { ContractHistoryItem } from '@/types/contract';
+import ContractSection from './ContractSection';
+import ContractToolbar from './ContractToolbar';
+import { useToast } from '@/hooks/use-toast';
+import { useContractSections } from '@/hooks/useContractSections';
+import { analyzeContractSections } from '@/utils/contractAnalysis';
 
 interface ContractBuilderProps {
   templateId: string;
@@ -21,47 +17,11 @@ interface ContractBuilderProps {
 const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack }) => {
   const { toast } = useToast();
   const { state } = useAppContext();
-  const [sections, setSections] = useState<ContractSectionData[]>([]);
-  const [contractName, setContractName] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  
-  // Load template sections based on language
-  useEffect(() => {
-    const template = getTemplateById(templateId);
-    if (template) {
-      setContractName(template.title[state.language]);
-      setSections(template.sections[state.language] || template.sections['en']);
-    }
-  }, [templateId, state.language]);
-
-  const updateSectionContent = (sectionId: string, newContent: string) => {
-    setSections(prevSections => 
-      prevSections.map(section => 
-        section.id === sectionId ? { ...section, content: newContent } : section
-      )
-    );
-    
-    if (newContent.toLowerCase().includes('unlimited liability')) {
-      setTimeout(() => {
-        setSections(prevSections => 
-          prevSections.map(section => 
-            section.id === sectionId ? { ...section, riskLevel: 'high' as RiskLevel } : section
-          )
-        );
-        
-        toast({
-          title: 'Risk Detected',
-          description: 'Unlimited liability clause may expose you to significant risk.',
-          variant: 'destructive',
-        });
-      }, 1000);
-    }
-  };
+  const { sections, setSections, contractName, updateSectionContent } = useContractSections(templateId, state.language);
   
   const handleDragEnd = (result: DropResult) => {
     const { destination, source } = result;
-    
-    // Drop outside the list or no movement
     if (!destination || (destination.index === source.index)) {
       return;
     }
@@ -69,7 +29,6 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
     const newSections = Array.from(sections);
     const [removed] = newSections.splice(source.index, 1);
     newSections.splice(destination.index, 0, removed);
-    
     setSections(newSections);
   };
   
@@ -87,10 +46,6 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
     }, 1500);
   };
   
-  const handleAutofill = (sectionId: string, text: string) => {
-    updateSectionContent(sectionId, text);
-  };
-  
   const handleAnalyze = () => {
     setIsAnalyzing(true);
     toast({
@@ -99,24 +54,7 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
     });
     
     setTimeout(() => {
-      // Simulate risk analysis
-      const updatedSections = sections.map(section => {
-        // Assign risk levels based on certain content patterns
-        if (section.content.toLowerCase().includes('unlimited') && 
-            section.content.toLowerCase().includes('liability')) {
-          return { ...section, riskLevel: 'high' as RiskLevel };
-        }
-        if (section.content.toLowerCase().includes('terminate') && 
-            section.content.toLowerCase().includes('immediate')) {
-          return { ...section, riskLevel: 'high' as RiskLevel };
-        }
-        if (section.content.toLowerCase().includes('notice period') || 
-            section.content.toLowerCase().includes('days notice')) {
-          return { ...section, riskLevel: 'medium' as RiskLevel };
-        }
-        return section;
-      });
-      
+      const updatedSections = analyzeContractSections(sections);
       setSections(updatedSections);
       setIsAnalyzing(false);
       
@@ -128,14 +66,12 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
   };
   
   const handleSaveDraft = () => {
-    // Count risks
     const risks = {
       high: sections.filter(s => s.riskLevel === 'high').length,
       medium: sections.filter(s => s.riskLevel === 'medium').length,
       low: sections.filter(s => s.riskLevel === 'low').length
     };
     
-    // Create history item
     const historyItem: ContractHistoryItem = {
       id: Date.now().toString(),
       templateId: templateId,
@@ -147,7 +83,6 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
       risks: risks
     };
     
-    // Save to localStorage
     try {
       const existingHistory = localStorage.getItem('huquq-contract-history');
       let history: ContractHistoryItem[] = [];
@@ -190,41 +125,14 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
   
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button variant="outline" size="sm" onClick={onBack}>
-          <ChevronLeft className="h-4 w-4 mr-1" />
-          Back to Templates
-        </Button>
-        <h2 className="text-xl font-semibold flex-grow">{contractName}</h2>
-        <div className="flex gap-2 flex-wrap">
-          <LanguageScriptToggle />
-          <ContractHistory onSelectContract={handleContractFromHistory} />
-          <Button 
-            size="sm" 
-            variant="outline"
-            onClick={handleAnalyze}
-            disabled={isAnalyzing}
-          >
-            <AlertCircle className="h-4 w-4 mr-1" />
-            {isAnalyzing ? 'Analyzing...' : 'Analyze Risks'}
-          </Button>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={() => handleExport('docx')}
-          >
-            <File className="h-4 w-4 mr-1" />
-            Export DOCX
-          </Button>
-          <Button 
-            size="sm"
-            onClick={() => handleExport('pdf')}
-          >
-            <FileText className="h-4 w-4 mr-1" />
-            Export PDF
-          </Button>
-        </div>
-      </div>
+      <ContractToolbar
+        onBack={onBack}
+        onAnalyze={handleAnalyze}
+        isAnalyzing={isAnalyzing}
+        contractName={contractName}
+        onExport={handleExport}
+        onSelectHistory={handleContractFromHistory}
+      />
       
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="contract-sections">
@@ -249,11 +157,7 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
                       <ContractSection
                         section={section}
                         onChange={(content) => updateSectionContent(section.id, content)}
-                        autofill={
-                          <AutofillManager 
-                            onSelect={(text) => handleAutofill(section.id, text)} 
-                          />
-                        }
+                        autofill={null}
                       />
                     </div>
                   )}
