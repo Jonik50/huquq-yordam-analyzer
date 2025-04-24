@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from "@/contexts/AppContext";
 import ContractSection from './ContractSection';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
-import { ContractSectionData, ContractHistoryItem } from '@/types/contract';
+import { ContractSectionData, ContractHistoryItem, RiskLevel } from '@/types/contract';
 import { getTemplateById } from '@/data/templateData';
 import AutofillManager from './AutofillManager';
 import LanguageScriptToggle from './LanguageScriptToggle';
@@ -45,7 +45,7 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
       setTimeout(() => {
         setSections(prevSections => 
           prevSections.map(section => 
-            section.id === sectionId ? { ...section, riskLevel: 'high' } : section
+            section.id === sectionId ? { ...section, riskLevel: 'high' as RiskLevel } : section
           )
         );
         
@@ -104,15 +104,15 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ templateId, onBack })
         // Assign risk levels based on certain content patterns
         if (section.content.toLowerCase().includes('unlimited') && 
             section.content.toLowerCase().includes('liability')) {
-          return { ...section, riskLevel: 'high' };
+          return { ...section, riskLevel: 'high' as RiskLevel };
         }
         if (section.content.toLowerCase().includes('terminate') && 
             section.content.toLowerCase().includes('immediate')) {
-          return { ...section, riskLevel: 'high' };
+          return { ...section, riskLevel: 'high' as RiskLevel };
         }
         if (section.content.toLowerCase().includes('notice period') || 
             section.content.toLowerCase().includes('days notice')) {
-          return { ...section, riskLevel: 'medium' };
+          return { ...section, riskLevel: 'medium' as RiskLevel };
         }
         return section;
       });
