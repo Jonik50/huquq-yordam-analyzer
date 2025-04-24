@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -63,15 +62,14 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom colors for our legal assistant
 				huquq: {
-					primary: '#2563EB',
-					secondary: '#60A5FA',
-					light: '#EFF6FF',
-					danger: '#EF4444',
-					warning: '#FACC15',
-					success: '#4ADE80',
-					gray: '#F3F4F6'
+					primary: "#8B5CF6",
+					secondary: "#A78BFA",
+					light: "#F3F4F6",
+					dark: "#1F2937",
+					success: "#10B981",
+					warning: "#F59E0B",
+					danger: "#EF4444"
 				}
 			},
 			borderRadius: {
