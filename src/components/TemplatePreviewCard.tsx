@@ -3,8 +3,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContractTemplate, Language } from '@/types/contract';
-import * as LucideIcons from 'lucide-react';
-import { FileText } from 'lucide-react';
+import { FileText, FileContract, UserCheck, Building, Home, Shield, Handshake } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface TemplatePreviewCardProps {
   template: ContractTemplate;
@@ -12,22 +12,24 @@ interface TemplatePreviewCardProps {
   onSelect: (templateId: string) => void;
 }
 
+// Define mapping of categories to specific icons
+const categoryIcons: Record<string, LucideIcon> = {
+  'business': FileContract,
+  'employment': UserCheck,
+  'real-estate': Building,
+  'personal': Home,
+  'partnership': Handshake,
+  'nda': Shield,
+  'custom': FileText
+};
+
 const TemplatePreviewCard: React.FC<TemplatePreviewCardProps> = ({
   template,
   currentLanguage,
   onSelect,
 }) => {
-  // Get the icon component based on the template icon name
-  // If the icon doesn't exist in Lucide, use FileText as fallback
-  const getIconComponent = () => {
-    if (template.icon && template.icon in LucideIcons) {
-      const IconName = template.icon as keyof typeof LucideIcons;
-      return LucideIcons[IconName];
-    }
-    return FileText;
-  };
-  
-  const IconComponent = getIconComponent();
+  // Get the icon component based on template category or use FileText as fallback
+  const IconComponent = categoryIcons[template.category] || FileText;
 
   return (
     <Card 
