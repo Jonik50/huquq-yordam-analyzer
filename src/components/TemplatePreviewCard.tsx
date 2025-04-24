@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContractTemplate, Language } from '@/types/contract';
-import { FileText, FileContract, UserCheck, Building, Home, Shield, Handshake } from 'lucide-react';
+import { FileText, FileCheck, FileCog, UserCheck, Building, Home, Shield, Handshake } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface TemplatePreviewCardProps {
@@ -14,7 +14,7 @@ interface TemplatePreviewCardProps {
 
 // Define mapping of categories to specific icons
 const categoryIcons: Record<string, LucideIcon> = {
-  'business': FileContract,
+  'business': FileCog,  // Replaced FileContract with FileCog
   'employment': UserCheck,
   'real-estate': Building,
   'personal': Home,
